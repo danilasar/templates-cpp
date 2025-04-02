@@ -517,7 +517,7 @@ std::cout << Fibonacci<5>::value; // 5
 
 === Метафункции
 
-Если вы всё ещё не верите, что шаблоны являются полноценным языком программирования, то давайте заставим пациента на этапе компиляции выполнить операцию сравнения и вернуть результат в переменную --- одним словом, напишем метафункцию ```cpp is_same```.
+"Ну, рекурсивную функцию написать каждому дураку под силу", --- скажете вы. Если вы всё ещё не удивлены выполнением рекурсии, да ещё по сути с динамикой, во время компиляции, если вы всё ещё не верите, что шаблоны являются полноценным языком программирования, то давайте заставим пациента на этапе компиляции выполнить операцию сравнения и вернуть результат в переменную --- одним словом, напишем метафункцию ```cpp is_same```.
 
 ```cpp
 template<typename T, typename U>
@@ -538,14 +538,71 @@ bool compare_types(const T& l, const U& r) {
 }
 ```
 
-// TODO: дописать conditionals
+Я вижу, что кому-то этого может быть недостаточно. Неужели это всё, на что способны шаблоны в C++? Конечно нет! Давайте напишем условный оператор на них!
 
 ```cpp
+template<bool B, class T, class F>
+struct conditional {
+	using type = T;
+};
+ 
+template<class T, class F>
+struct conditional<false, T, F> {
+	using type = F;
+};
+
+template< bool B, class T, class F >
+using conditional_t = typename conditional<B, T, F>::type;
+```
+
+Итак, мы всё ближе к тому, чтобы изобрести метафункциональный метаязык метапрограммирования на шаблонах. Наш тернарный оператор принимает на вход буль и на выход даёт тип T или F в зависимости от истинности буля.
+
+"Но ведь мы не можем выводить какую-то сложную логику, поскольку работа ведётся с типами данных, а не с булевыми значениями", --- возразите вы. Ну так давайте изобретём метабулевы значения!
+
+```cpp
+#include <iostream>
+struct true_type {
+	static constexpr bool value = true;
+};
+struct false_type {
+	static constexpr bool value = false;
+};
+
+template<bool B, class T, class F>
+struct conditional {
+	using type = T;
+};
+ 
+template<class T, class F>
+struct conditional<false, T, F> {
+	using type = F;
+};
+
+template<bool B, class T, class F>
+using conditional_t = typename conditional<B, T, F>::type;
+
+// сделаем функцию сравнения чисел на этапе компиляции
+template<int A, int B, typename Z = conditional_t<A <= B, true_type, false_type>>
+void f() {
+	// условная компиляция
+	if constexpr (Z::value) {
+		std::cout << "Меньше или равно";   
+	} else {
+	  // даже не попадёт в выходной бинарник
+		std::cout << "Больше";
+	}
+}
+
+int main() {
+	f<2, 3>();
+}
+
 ```
 
 Что по-вашему константа, как вы думаете? Как говорил кто-то из великих, в этом мире всё относительно. Вот и наш пациент утверждает, что константность --- в целом тоже понятие весьма относительное: сегодня константа, а завтра переменная. Давайте накидаем метафункцию, которая делает константу неконстантой.
 
 ```cpp
+#include <iostream>
 template<typename T>
 struct remove_const {
 	using type = T;
@@ -553,19 +610,21 @@ struct remove_const {
 template<typename T>
 struct remove_const<const T> {
 	using type = T;
-}
+};
 template<typename T>
-using remove_const_t = remove_const<T>;
+using remove_const_t = remove_const<T>::type;
 
 template<typename T>
 void f(T& a) {
-	typename remove_const_t<T>& b = const_cast<T>(a);
-	b = 69;
+	const_cast<remove_const_t<T>&>(a) = 69;
 }
 
-const int a = 10;
-f(a);
-std::cout << a; // 10 или 69?
+int main() {
+	int i = 42;
+	const int& rci = i;
+	f(rci);
+	std::cout << i; // 42 или 69?
+}
 ```
 
 === Наследование и шаблоны
