@@ -128,7 +128,7 @@ Foo<int, 69> foo = Foo<int, 69>();
 ```cpp
 template<typename T = int, size_t N = 69>
 struct Foo {
-	T bar[69];
+	T bar[N];
 };
 Foo foo1 = Foo(); // то же, что и Foo<int, 69>
 Foo<bool, 1> foo2 = Foo<bool, 1>();
@@ -153,15 +153,15 @@ template<typename T, size_t N>
 struct Foo {
 	T bar[N];
 };
-// полная специализация
-template<>
-struct Foo<int32_t, 2> {
-	int64_t bar;
-};
 // частичная специализация
 template<size_t N>
 struct Foo<char, N> {
 	std::string bar = std::string(N);
+};
+// полная специализация
+template<>
+struct Foo<int32_t, 2> {
+	int64_t bar;
 };
 Foo<bool, 3> foo1 = Foo<bool, 3>();
 Foo<int32_t, 2> foo2 = Foo<int32_t, 2>();
@@ -207,39 +207,39 @@ Foo<char, 42> foo3 = Foo<char, 42>();
 [
 2:8: error: ‘Foo’ is not a typename template
 ```cpp
-    2 | struct Foo<int32_t, 2> {
-      |        ^~~
-      |                        ^
+		2 | struct Foo<int32_t, 2> {
+			|        ^~~
+			|                        ^
 ```
 7:8: error: ‘Foo’ is not a template
 ```cpp
-    7 | struct Foo {
-      |        ^~~
+		7 | struct Foo {
+			|        ^~~
 ```
 2:8: note: previous declaration here
 ```cpp
-    2 | struct Foo<int32_t, 2> {
-      |        ^~~
+		2 | struct Foo<int32_t, 2> {
+			|        ^~~
 ```
 12:8: error: ‘Foo’ is not a typename template
 ```cpp
-   12 | struct Foo<char, N> {
-      |        ^~~
+	 12 | struct Foo<char, N> {
+			|        ^~~
 ```
 12:18: error: ‘N’ was not declared in this scope
 ```cpp
-   12 | struct Foo<char, N> {
-      |                  ^
+	 12 | struct Foo<char, N> {
+			|                  ^
 ```
 12:19: error: ‘Foo’ is not a template
 ```cpp
-   12 | struct Foo<char, N> {
-      |                   ^
+	 12 | struct Foo<char, N> {
+			|                   ^
 ```
 2:8: note: previous declaration here
 ```cpp
-    2 | struct Foo<int32_t, 2> {
-      |        ^~~
+		2 | struct Foo<int32_t, 2> {
+			|        ^~~
 ```
 ]
 )
@@ -260,15 +260,15 @@ template<>        typename Vector<void*>; // специализация для v
 
 ```cpp 
 template<typename T, typename U>
-void f(T, U)     { std:: cout << 1; }
+void f(T, U)     { std::cout << 1; }
 
 template<typename T>
-void f(T, T)     { std:: cout << 2; }
+void f(T, T)     { std::cout << 2; }
 
 template<>
-void f(int, int) { std:: cout << 3; }
+void f(int, int) { std::cout << 3; }
 
-void f(int, int) { std:: cout << 4; }
+void f(int, int) { std::cout << 4; }
 
 int main() {
 	f(0, 0);
@@ -289,12 +289,15 @@ int main() {
 
 === Шаблонные шаблоны
 ```cpp
-struct Container;
+template<typename T>
+struct MyContainer;
 
-template<typename T, template<typename> typename Container>
+template<typename T, template<typename> typename Container = MyContainer<T>>
 struct Pod {
 	Container<T> container;
-}
+};
+
+Pod<int> pod = Pod<int>(); // T = int, Container = MyContainer<int>
 ```
 
 Как можно заметить, в качестве второго параметра шаблона мы передали другой шаблон, принимающий аргументом единственный тип, и назвали его ```cpp Container```.
@@ -333,21 +336,21 @@ In instantiation of ‘const int Fibonacci<-879>::value’:
 recursively required from ‘const int Fibonacci<19>::value’
 ```
 ```cpp
-   static const int value = Fibonacci<N - 1>::value + Fibonacci<N - 2>::value;
-                                              ^~~~~
+	 static const int value = Fibonacci<N - 1>::value + Fibonacci<N - 2>::value;
+																							^~~~~
 ```
 ```
 required from ‘const int Fibonacci<20>::value’
 required from here
 ```
 ```cpp
-   std::cout << Fibonacci<20>::value;
-                               ^~~~~
+	 std::cout << Fibonacci<20>::value;
+															 ^~~~~
 ```
 ``` fatal error: ```*`template instantiation depth exceeds maximum of 900`*```  (use ‘-ftemplate-depth=’ to increase the maximum)```
 ```cpp
-   static const int value = Fibonacci<N - 1>::value + Fibonacci<N - 2>::value;
-                                              ^~~~~
+	 static const int value = Fibonacci<N - 1>::value + Fibonacci<N - 2>::value;
+																							^~~~~
 ```
 ```
 compilation terminated.
@@ -403,19 +406,19 @@ In function ‘int main()’:
 error: template constraint failure for ‘template  requires  N >= 0 struct Fibonacci’
 ```
 ```cpp
-    std::cout << Fibonacci<-20>::value;
-                              ^
+		std::cout << Fibonacci<-20>::value;
+															^
 ```
 ```
 note: constraints not satisfied
 In substitution of ‘template<int N>  requires  N >= 0 struct Fibonacci [with int N = -15]’:
-   required from here
-   required by the constraints of ‘template  requires  N >= 0 struct Fibonacci’
+	 required from here
+	 required by the constraints of ‘template  requires  N >= 0 struct Fibonacci’
 ```
 `note: `*`the expression ‘N >= 0 [with N = -15]’ evaluated to ‘false’`* \
 ```cpp
-    template<int N> requires (N >= 0)
-                         ~~~^~~~~
+		template<int N> requires (N >= 0)
+												 ~~~^~~~~
 ```
 
 Давайте полюбуемся, во что превращает компилятор вывод ```cpp Fibonacci<5>```:
@@ -510,6 +513,26 @@ std::cout << Fibonacci<5>::value; // 5
 
 === Шаблонные перменные
 
+=== Зависимые имена
+
+```cpp
+template<typename T>
+struct S {
+	using A = int;
+};
+template<>
+struct S<double> {
+	static const int A = 5;
+};
+int x = 0;
+template<typename T>
+void f(T x) {
+	S<T>::A* x; // объявление или выражение?
+}
+int main() {
+	f<int>();
+}
+```
 
 
 
@@ -520,23 +543,22 @@ std::cout << Fibonacci<5>::value; // 5
 
 
 
-
-                                                       Параметры типа
-                                                       Параметры, не относящиеся к типу
-                                                       Аргументы по умолчанию
-                                                       Специализации
-                                                       Шаблонные классы
+																											 Параметры типа
+																											 Параметры, не относящиеся к типу
+																											 Аргументы по умолчанию
+																											 Специализации
+																											 Шаблонные классы
 Шаблонный using
-                                                       ? Порядок использования шаблонов
-                                                       Перегрузка шаблона, эвристика работы компилятора
-                                                       Шаблонный аргумент по умолчанию
-                                                       Полная и частичная специализация
-                                                       Порядок перегрузки
-                                                       Non-template parameters
-                                                       Числовые параметры у классов
+																											 ? Порядок использования шаблонов
+																											 Перегрузка шаблона, эвристика работы компилятора
+																											 Шаблонный аргумент по умолчанию
+																											 Полная и частичная специализация
+																											 Порядок перегрузки
+																											 Non-template parameters
+																											 Числовые параметры у классов
 constexpr
-                                                       Шаблонные-шаблонные параметры
-                                                       Вычисления на этапе компиляции
+																											 Шаблонные-шаблонные параметры
+																											 Вычисления на этапе компиляции
 Шаблонные переменные
 static_assert
 
