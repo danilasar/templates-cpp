@@ -561,12 +561,12 @@ using conditional_t = typename conditional<B, T, F>::type;
 
 ```cpp
 #include <iostream>
-struct true_type {
-	static constexpr bool value = true;
+template<bool B>
+struct bool_type {
+	static constexpr bool value = B;
 };
-struct false_type {
-	static constexpr bool value = false;
-};
+typedef bool_type<true> true_type;
+typedef bool_type<false> false_type;
 
 template<bool B, class T, class F>
 struct conditional {
