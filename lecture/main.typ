@@ -517,28 +517,8 @@ std::cout << Fibonacci<5>::value; // 5
 
 === Метафункции
 
-"Ну, рекурсивную функцию написать каждому дураку под силу", --- скажете вы. Если вы всё ещё не удивлены выполнением рекурсии, да ещё по сути с динамикой, во время компиляции, если вы всё ещё не верите, что шаблоны являются полноценным языком программирования, то давайте заставим пациента на этапе компиляции выполнить операцию сравнения и вернуть результат в переменную --- одним словом, напишем метафункцию ```cpp is_same```.
+"Ну, рекурсивную функцию написать каждому дураку под силу", --- скажете вы. Если вы всё ещё не удивлены выполнением рекурсии, да ещё по сути с динамикой, во время компиляции, если вы всё ещё не верите, что шаблоны являются полноценным языком программирования, то давайте заставим пациента на этапе компиляции проверить условие и в зависимости от его истинности вернуть нужный нам тип --- одним словом, напишем оператор ```cpp if``` и назовём его ```cpp conditional```.
 
-```cpp
-template<typename T, typename U>
-struct is_same {
-	static constexpr bool value = false;
-};
-template<typename T>
-struct is_same<T, T> {
-	static constexpr bool value = true;
-};
-// шаблонные переменные появились в C++14
-template<typename T, typename U>
-bool is_same_v = is_same<T, U>::value;
-
-template<typename T, typename U>
-bool compare_types(const T& l, const U& r) {
-	return is_same_v<T, U>;
-}
-```
-
-Я вижу, что кому-то этого может быть недостаточно. Неужели это всё, на что способны шаблоны в C++? Конечно нет! Давайте напишем условный оператор на них!
 
 ```cpp
 template<bool B, class T, class F>
@@ -551,11 +531,12 @@ struct conditional<false, T, F> {
 	using type = F;
 };
 
-template< bool B, class T, class F >
+// шаблонный using для удобства
+template<bool B, class T, class F>
 using conditional_t = typename conditional<B, T, F>::type;
 ```
 
-Итак, мы всё ближе к тому, чтобы изобрести метафункциональный метаязык метапрограммирования на шаблонах. Наш тернарный оператор принимает на вход буль и на выход даёт тип T или F в зависимости от истинности буля.
+Итак, мы всё ближе к тому, чтобы изобрести метаязык метапрограммирования на шаблонах. Наш тернарный оператор принимает на вход буль и на выход даёт тип T или F в зависимости от истинности буля.
 
 "Но ведь мы не можем выводить какую-то сложную логику, поскольку работа ведётся с типами данных, а не с булевыми значениями", --- возразите вы. Ну так давайте изобретём метабулевы значения!
 
@@ -579,10 +560,10 @@ struct conditional<false, T, F> {
 };
 
 template<bool B, class T, class F>
-using conditional_t = typename conditional<B, T, F>::type;
+using conditional_t = typename conditional<B, T = true_type, F = false_type>::type;
 
 // сделаем функцию сравнения чисел на этапе компиляции
-template<int A, int B, typename Z = conditional_t<A <= B, true_type, false_type>>
+template<int A, int B, typename Z = conditional_t<A <= B>>
 void f() {
 	// условная компиляция
 	if constexpr (Z::value) {
@@ -599,7 +580,40 @@ int main() {
 
 ```
 
+Мы ввели типы ```cpp true_false``` и ```cpp false_type```, оба из которых содержат единственное статическое поле ```cpp value``` с соответствующим булевым значением. В зависимости от ситуации наш тип ```conditional_t``` будет иметь внутри себя ```using type``` соответствующего типа. Таким образом, по ```cpp type::value``` мы с лёгкостью определим, истинно наше выражение или же ложно.
+
+Использовать ```cpp true_type``` и ```cpp false_type``` в ```conditional```, конечно, наглядно, но не слишком осмысленно. Давайте напишем метафнукцию сравнения типов ```cpp is_same``` и посмотрим на пример её использования.
+
+```cpp
+template<bool B>
+struct bool_type {
+	static constexpr bool value = B;
+};
+typedef bool_type<true> true_type;
+typedef bool_type<false> false_type;
+
+template<typename T, typename U>
+struct is_same : false_type;
+
+template<typename T>
+struct is_same<T, T> : true_type;
+
+// шаблонные переменные появились в C++14
+template<typename T, typename U>
+bool is_same_v = is_same<T, U>::value;
+
+template<typename T, typename U>
+bool compare_types(const T& l, const U& r) {
+	if constexpr (is_same_v<T, U>) {
+		std::cout << "Это один и тот же тип";
+	} else {
+		std::cout << "Это разные типы";
+	}
+}
+```
+
 Что по-вашему константа, как вы думаете? Как говорил кто-то из великих, в этом мире всё относительно. Вот и наш пациент утверждает, что константность --- в целом тоже понятие весьма относительное: сегодня константа, а завтра переменная. Давайте накидаем метафункцию, которая делает константу неконстантой.
+
 
 ```cpp
 #include <iostream>
