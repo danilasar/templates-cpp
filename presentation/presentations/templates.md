@@ -3,6 +3,13 @@
 
 ---
 
+<img src="assets/qr-code.svg" width="300" />
+
+[github.com/danilasar/templates-cpp](github.com/danilasar/templates-cpp)
+
+
+---
+
 ## Метапрограммирование
 
 Программы создаются метапрограммами,
@@ -20,7 +27,36 @@
 
 ## Макросы
 
-![Макрос vec!](assets/rust_macro.png)
+
+<div class="eq_blocks">
+
+<div class="left">
+
+```rust[]
+let v: Vec<u32> = vec![1, 2, 3];
+```
+
+</div>
+
+<div class="arrow">
+	<img src="assets/then.png" />
+</div>
+
+<div class="right">
+
+```rust[]
+let v: Vec<u32> = {
+	let mut tmp = Vec::new();
+	tmp.push(1);
+	tmp.push(2);
+	tmp.push(3);
+	tmp
+};
+```
+
+</div>
+
+</div>
 
 --
 <!-- .slide: data-auto-animate -->
